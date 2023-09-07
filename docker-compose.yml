@@ -1,0 +1,42 @@
+version: '3.2'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-lru-container
+    networks:
+      - my-network
+    restart: always
+    hostname: lru-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - /var/log/dockerLogs/redis-lru:/data
+    command: redis-server
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      start_period: 10s
+
+  lru-service:
+    container_name: lru-service-container
+    build:
+      context: .
+      dockerfile: 'Dockerfile'
+    restart: always
+    networks:
+      - my-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      - /var/log/dockerLogs:/app/logs
+    depends_on:
+      - "redis"
+
+networks:
+  my-network:

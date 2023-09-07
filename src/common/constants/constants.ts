@@ -1,0 +1,8 @@
+export const MS_IN_SECOND = 1000;
+export const MAX_SET_MUTEX_EFFORTS = 10;
+export const LIVE_TIME_MUTEX_KEY = 8 * MS_IN_SECOND;
+
+export const KEY_CANT_BE_SETTED_ERROR_CODE = 50002;
+export const MUTEX_CANT_BE_SETTED_ERROR_CODE = 50001;
+export const KEY_CANT_BE_GETTED_ERROR_CODE = 50003;
+export const KEY_NOT_EXIST_ERROR_CODE = 40401;

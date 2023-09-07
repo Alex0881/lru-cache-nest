@@ -1,0 +1,15 @@
+dist
+node_modules
+.git
+.gitignore
+**/.vscode
+**/.gitkeep
+test
+**/.env
+**/.env.*
+**/.aws
+**/.ssh
+**/*.log
+Dockerfile
+README.md
+docker-compose.yml
