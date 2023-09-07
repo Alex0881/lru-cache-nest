@@ -3,8 +3,8 @@ import {
   KEY_CANT_BE_GETTED_ERROR_CODE,
   KEY_CANT_BE_SETTED_ERROR_CODE,
   KEY_NOT_EXIST_ERROR_CODE,
-  MUTEX_CANT_BE_SETTED_ERROR_CODE
-} from "../common/constants/constants";
+  MUTEX_CANT_BE_SETTED_ERROR_CODE,
+} from '../common/constants/constants';
 
 export type TCustomExceptionKind =
   | 'authorization'

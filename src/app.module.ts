@@ -19,7 +19,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
         REDIS_PORT: Joi.number().required(),
         REDIS_HOST: Joi.string().required(),
         APP_PREFIX: Joi.string().required(),
-        MAX_CACHE_SIZE: Joi.number().required()
+        MAX_CACHE_SIZE: Joi.number().required(),
       }),
     }),
     RedisModule.forRootAsync({

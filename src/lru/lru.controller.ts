@@ -13,7 +13,6 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ErrorNestDto } from '../common/dto/errorNest.dto';
 import { GetValueKeyResponseDto } from './dto/getValueKeyResponse.dto';
-import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
 import { SetValueKeyDto } from './dto/setValueKey.dto';
 import { LruService } from './lru.service';
 
