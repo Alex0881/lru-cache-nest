@@ -35,7 +35,7 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  describe('Email Gsuite send V1', () => {
+  describe('LRU Cache V1', () => {
     const dtoWithExpiredAppToken = {
       emailAddress: 'prog-alex-81@yandex.ru',
       access_token:

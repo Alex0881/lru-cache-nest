@@ -34,6 +34,16 @@ export class LruService {
     return `${this.appPrefix}${key}`;
   }
 
+  private deleteMutexKey() {
+    try {
+      // удаляем ключ мьютекса
+      this.redis.del(this.mutexName);
+    } catch (e) {
+      // ничего не делаем, даже если отвалилось соединение,
+      // то самоистекющий ключ мьютекса сам уничтожится
+    }
+  }
+
   async setKeyValue(keyName: string, dto: SetValueKeyDto): Promise<void> {
     // ставим мьютекс, TTL мьютекса меньше чем суммарный интервал попыток,
     // т о либо он поставится, либо выбросит исключение
@@ -74,21 +84,30 @@ export class LruService {
     try {
       currentCacheSize = await this.redis.zcard(this.appPrefix);
     } catch (e) {
+      this.deleteMutexKey();
       throw new KeySettingException(keyName);
     }
 
+    const keyNameForRedis = this.getKeyNameForRedis(keyName);
+
     try {
       if (currentCacheSize >= this.maxCacheSize) {
+        // у нас проверка при старте что размер очереди не менее 1,
+        // так что обращение к 0 индексу будет корректно всегда
+        const keyNameForDelete = (
+          await this.redis.zrange(this.appPrefix, 0, 0)
+        )[0];
+
         await this.redis
           .multi()
-          // удаляет ключ с минимальным весом - самым давним временем обращения
-          .zremrangebyrank(this.appPrefix, 0, 0)
+          .del(keyNameForDelete)
+          .zrem(this.appPrefix, keyNameForDelete)
           .zadd(
             this.appPrefix,
             Math.floor(Date.now() / MS_IN_SECOND),
-            this.getKeyNameForRedis(keyName),
+            keyNameForRedis,
           )
-          .set(this.getKeyNameForRedis(keyName), dto.value)
+          .set(keyNameForRedis, dto.value)
           .del(this.mutexName)
           .exec();
       } else {
@@ -97,26 +116,21 @@ export class LruService {
           .zadd(
             this.appPrefix,
             Math.floor(Date.now() / MS_IN_SECOND),
-            this.getKeyNameForRedis(keyName),
+            keyNameForRedis,
           )
-          .set(this.getKeyNameForRedis(keyName), dto.value)
+          .set(keyNameForRedis, dto.value)
           .del(this.mutexName)
           .exec();
       }
     } catch (e) {
-      try {
-        // удаляем ключ мьютекса
-        this.redis.del(this.mutexName);
-      } catch (e) {
-        // ничего не делаем, даже если отвалилось соединение,
-        // то самоистекющий ключ мьютекса сам уничтожится
-      }
+      this.deleteMutexKey();
       throw new KeySettingException(keyName);
     }
   }
 
   async getKeyValue(keyName: string): Promise<GetValueKeyResponseDto> {
     let plResult, result;
+    const keyNameForRedis = this.getKeyNameForRedis(keyName);
     try {
       plResult = await this.redis
         .multi()
@@ -124,9 +138,9 @@ export class LruService {
           this.appPrefix,
           'XX',
           Math.floor(Date.now() / MS_IN_SECOND),
-          this.getKeyNameForRedis(keyName),
+          keyNameForRedis,
         )
-        .get(this.getKeyNameForRedis(keyName))
+        .get(keyNameForRedis)
         .exec();
     } catch (e) {
       throw new KeySettingException(keyName);
