@@ -11,10 +11,12 @@ import {
   Version,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ErrorNestDto } from '../common/dto/errorNest.dto';
+import { ErrorDto } from '../common/dto/errorDto';
 import { GetValueKeyResponseDto } from './dto/getValueKeyResponse.dto';
 import { SetValueKeyDto } from './dto/setValueKey.dto';
 import { LruService } from './lru.service';
+import { ValidationError } from 'class-validator';
+import { ValidationException } from '../customExceptions/customExceptions';
 
 @ApiTags('LRU')
 @Controller('')
@@ -30,6 +32,8 @@ export class LruController {
       whitelist: true,
       forbidNonWhitelisted: true,
       errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+      exceptionFactory: (errors: ValidationError[]) =>
+        new ValidationException(errors),
     }),
   )
   @ApiOperation({ summary: 'Установка значения ключа' })
@@ -37,12 +41,12 @@ export class LruController {
   @ApiResponse({
     status: 422,
     description: 'Ошибка входных параметров',
-    type: ErrorNestDto,
+    type: ErrorDto,
   })
   @ApiResponse({
     status: 500,
     description: 'Ошибка установки мьютекса или ошибка Redis',
-    type: ErrorNestDto,
+    type: ErrorDto,
   })
   async setKeyValue(
     @Body() dto: SetValueKeyDto,
@@ -57,14 +61,19 @@ export class LruController {
   @ApiOperation({ summary: 'Получение значения ключа' })
   @ApiResponse({ status: 200, type: GetValueKeyResponseDto })
   @ApiResponse({
+    status: 404,
+    description: 'Ключ не существует',
+    type: ErrorDto,
+  })
+  @ApiResponse({
     status: 422,
     description: 'Ошибка входных параметров',
-    type: ErrorNestDto,
+    type: ErrorDto,
   })
   @ApiResponse({
     status: 500,
     description: 'Ошибка Redis',
-    type: ErrorNestDto,
+    type: ErrorDto,
   })
   async getKeyValue(
     @Param('keyName') keyName: string,

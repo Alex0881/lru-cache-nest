@@ -4,7 +4,9 @@ import {
   KEY_CANT_BE_SETTED_ERROR_CODE,
   KEY_NOT_EXIST_ERROR_CODE,
   MUTEX_CANT_BE_SETTED_ERROR_CODE,
+  VALIDATION_ERROR_CODE,
 } from '../common/constants/constants';
+import { ValidationError } from 'class-validator';
 
 export type TCustomExceptionKind =
   | 'authorization'
@@ -29,28 +31,41 @@ export abstract class CustomException {
 }
 
 abstract class AuthenticationException extends CustomException {
-  //httpCode = HttpStatus.UNAUTHORIZED;
   readonly exceptionKind = 'authorization';
 }
 
 abstract class NotAllowedException extends CustomException {
-  //httpCode = HttpStatus.FORBIDDEN;
   readonly exceptionKind = 'authentication';
 }
 
 abstract class NotFoundException extends CustomException {
-  //httpCode = HttpStatus.NOT_FOUND;
   readonly exceptionKind = 'not_found';
 }
 
 abstract class ClientException extends CustomException {
-  //httpCode = HttpStatus.BAD_REQUEST;
   readonly exceptionKind = 'client';
 }
 
 abstract class ServerException extends CustomException {
-  //httpCode = HttpStatus.INTERNAL_SERVER_ERROR;
   readonly exceptionKind = 'server';
+}
+
+export class ValidationException extends ClientException {
+  constructor(
+    errors: ValidationError[],
+    httpCode = HttpStatus.UNPROCESSABLE_ENTITY,
+  ) {
+    super(
+      VALIDATION_ERROR_CODE,
+      'Validation failed! - ' +
+        errors.reduce(
+          (acc, elError) => acc + '; ' + elError.toString(false),
+          '',
+        ),
+      httpCode,
+    );
+    this.name = ValidationException.name;
+  }
 }
 
 export class MutexSettingException extends ServerException {
@@ -73,7 +88,7 @@ export class KeySettingException extends ServerException {
       httpCode,
     );
 
-    this.name = MutexSettingException.name;
+    this.name = KeySettingException.name;
   }
 }
 
@@ -85,7 +100,7 @@ export class KeyGettingException extends ServerException {
       httpCode,
     );
 
-    this.name = MutexSettingException.name;
+    this.name = KeyGettingException.name;
   }
 }
 
@@ -93,6 +108,6 @@ export class KeyNotFoundException extends NotFoundException {
   constructor(key: string, httpCode = HttpStatus.NOT_FOUND) {
     super(KEY_NOT_EXIST_ERROR_CODE, `Key = ${key} is not exist`, httpCode);
 
-    this.name = MutexSettingException.name;
+    this.name = KeyNotFoundException.name;
   }
 }

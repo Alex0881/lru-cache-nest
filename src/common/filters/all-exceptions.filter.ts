@@ -12,7 +12,7 @@ import {
 } from '../../customExceptions/customExceptions';
 import { PinoLogger } from 'nestjs-pino';
 
-const exceptionKindsMap = new Map<TCustomExceptionKind, number>()
+const exceptionCodeMap = new Map<TCustomExceptionKind, number>()
   .set('authentication', 401)
   .set('authorization', 403)
   .set('not_found', 404)
@@ -36,7 +36,7 @@ export class AllExceptionsFilter<T> implements ExceptionFilter {
     } else if (exception instanceof CustomException) {
       status = exception.httpCode
         ? exception.httpCode
-        : exceptionKindsMap.get(exception.exceptionKind);
+        : exceptionCodeMap.get(exception.exceptionKind);
     }
 
     if (hostType === 'http') {
