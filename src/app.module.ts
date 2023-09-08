@@ -15,11 +15,11 @@ import { RedisModule } from '@nestjs-modules/ioredis';
   imports: [
     ConfigModule.forRoot({
       validationSchema: Joi.object({
-        PORT: Joi.number().required(),
-        REDIS_PORT: Joi.number().required(),
+        PORT: Joi.number().integer().required(),
+        REDIS_PORT: Joi.number().integer().required(),
         REDIS_HOST: Joi.string().required(),
         APP_PREFIX: Joi.string().required(),
-        MAX_CACHE_SIZE: Joi.number().required(),
+        MAX_CACHE_SIZE: Joi.number().integer().min(1).required(),
       }),
     }),
     RedisModule.forRootAsync({
