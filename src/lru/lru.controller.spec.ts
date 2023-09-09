@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LruController } from './lru.controller';
 import { LruService } from './lru.service';
-import { RedisModule } from '@nestjs-modules/ioredis';
+import { getRedisConnectionToken, RedisModule } from '@nestjs-modules/ioredis';
 import { ConfigService } from '@nestjs/config';
 
 describe('LruController', () => {
@@ -14,7 +14,8 @@ describe('LruController', () => {
         LruService,
         ConfigService,
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          //provide: 'default_IORedisModuleConnectionToken',
+          provide: getRedisConnectionToken(),
           useValue: RedisModule,
         },
       ],

@@ -1,13 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import * as pactum from 'pactum';
-import { string } from 'pactum-matchers';
+
 import { AppModule } from '../src/app.module';
 import { ConfigService } from '@nestjs/config';
 
-describe('AppController (e2e)', () => {
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
+import { settings } from 'pactum';
+import { int, string } from 'pactum-matchers';
+import { ApiProperty } from '@nestjs/swagger';
+import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
+
+describe(`AppController (e2e)`, () => {
   let app: INestApplication;
-  let port: string;
+  let port: string, redisConnection, appPrefix;
+
+  const errorResponseObject = {
+    statusCode: int(),
+    errorCode: int(),
+    timestamp: string(),
+    path: string(),
+    method: string(),
+    exception: { name: string(), message: string() },
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -20,7 +35,17 @@ describe('AppController (e2e)', () => {
     });
     await app.init();
     const configEnv = app.get(ConfigService);
+    //redisConnection = app.get('default_IORedisModuleConnectionToken');
+    redisConnection = app.get(getRedisConnectionToken());
     port = configEnv.get('PORT');
+    appPrefix = configEnv.get('APP_PREFIX');
+
+    // удалим ключи и сортированный список от предыдущих запусков тестов
+    redisConnection.del(appPrefix);
+    redisConnection.del(`${appPrefix}key1`);
+    redisConnection.del(`${appPrefix}key2`);
+    redisConnection.del(`${appPrefix}key3`);
+    redisConnection.del(`${appPrefix}key4`);
 
     await app.listen(port);
 
@@ -28,49 +53,115 @@ describe('AppController (e2e)', () => {
   });
 
   beforeEach(async () => {
-    // settings.setLogLevel('ERROR'); чтобы не выводить ничего лишнего кроме ошибок
+    //settings.setLogLevel('ERROR'); // чтобы не выводить ничего лишнего кроме ошибок
   });
 
   afterAll(async () => {
+    await redisConnection.disconnect();
     await app.close();
   });
 
-  describe('LRU Cache V1', () => {
-    const dtoWithExpiredAppToken = {
-      emailAddress: 'prog-alex-81@yandex.ru',
-      access_token:
-        'ya29.a0Aa4xrXP3TviTgTNyBokaHYBSlcscjJkZGRV69Nzy0fejXddtFnDBrojuds_bBJhkftGQCdazFktC6LeTqlPaxWkgnZSbr5IEwEWVO6dPHoo_E7kPqVZJ3eToAUMWK3L513F7yq9P7GOQJ0Yu3DFNGEmVVHFyaCgYKATASARESFQEjDvL9h965hh5hcHQ1KJ5Vqvlf-g0163',
-      letterTextHTML: '',
-      letterTopic: 'Topic BODR',
-      letterText: 'Text mail "BODR"',
-      letterAttachments: [
-        {
-          filename: '1.txt',
-          content_base64: 'cGluZyAxMC44LjIuMjAzIC10DQo=',
-        },
-        {
-          filename: '2.txt',
-          content_base64: '0J/RgNC40LLQtdGCLg==',
-        },
-      ],
-    };
-
-    it('should return 422 status if input DTO to send email has incorrect body', () => {
+  describe('Healthcheck LRU Cache', () => {
+    it('Healthcheck should return status 200', () => {
       return pactum
         .spec()
-        .post('/v1/email/gsuite/send-email')
+        .get('/')
+        .expectStatus(200)
+        .expectJsonMatchStrict({ message: string() });
+    });
+  });
+
+  describe("LRU Cache V1 - check error's statuses", () => {
+    it('should return 422 status if input DTO to set key has incorrect body', () => {
+      return pactum
+        .spec()
+        .post('/v1/key1')
         .withBody({
           letterTextHTML: '',
         })
-        .expectStatus(422);
+        .expectStatus(422)
+        .expectJsonMatchStrict(errorResponseObject);
     });
 
-    it('should return 500 status if google app token to send email is expired', () => {
+    it('should return 404 status if key not found', () => {
       return pactum
         .spec()
-        .post('/v1/email/gsuite/send-email')
-        .withBody(dtoWithExpiredAppToken)
-        .expectStatus(500);
+        .get(`/v1/${randomStringGenerator()}`)
+        .expectStatus(404);
+    });
+  });
+
+  describe('LRU Cache V1 - check get/set key and limit cache', () => {
+    it('setkey for key1 should return 200 status', () => {
+      return pactum
+        .spec()
+        .post('/v1/key1')
+        .withBody({
+          value: '123456',
+        })
+        .expectStatus(200);
+    });
+
+    it('getkey for key1 should return 200 status', () => {
+      return pactum
+        .spec()
+        .get(`/v1/key1`)
+        .expectStatus(200)
+        .expectJsonMatchStrict({ value: '123456' });
+    });
+
+    it('add key2', () => {
+      return pactum
+        .spec()
+        .post('/v1/key2')
+        .withBody({
+          value: '123456',
+        })
+        .expectStatus(200);
+    });
+  });
+
+  // теперь достигнут лимит размера кэша (2 в настройках .env.test)
+  // при добавлении третьего ключа, key1 должен удалиться из кэша,
+  // мы не сможем получить его значение
+  // в кэшэ останутся key2 и key3
+
+  describe('LRU Cache V1 - check exceed limit cache', () => {
+    it('setkey for key3 should return 200 status', () => {
+      return pactum
+        .spec()
+        .post('/v1/key3')
+        .withBody({
+          value: '123456',
+        })
+        .expectStatus(200);
+    });
+
+    it('getkey for key1 should return 404 status', () => {
+      return pactum.spec().get(`/v1/key1`).expectStatus(404);
+    });
+
+    // теперь у нас key2 имеет меньший приоритет и первый в списке
+    // произведем его получение чтобы обновился его вес
+    // и добавим key4, тогда удалится key3, т к его вес станет меньше всех
+    // и мы не сможем его получить
+
+    it('getkey for key2 should return 200 status', () => {
+      return pactum.spec().get(`/v1/key2`).expectStatus(200);
+    });
+
+    it('setkey for key4 should return 200 status', () => {
+      return pactum
+        .spec()
+        .post('/v1/key4')
+        .withBody({
+          value: '123456',
+        })
+        .expectStatus(200);
+    });
+
+    it('getkey for key3 should return 404 status', () => {
+      return pactum.spec().get(`/v1/key3`).expectStatus(404);
     });
   });
 
@@ -80,7 +171,7 @@ describe('AppController (e2e)', () => {
         .spec()
         .get('/')
         .expectStatus(200)
-        .expectJsonMatch({ message: string() });
+        .expectJsonMatchStrict({ message: string() });
     });
   });
 });

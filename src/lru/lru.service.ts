@@ -114,7 +114,7 @@ export class LruService {
           .zrem(this.appPrefix, keyNameForDelete)
           .zadd(
             this.appPrefix,
-            Math.floor(Date.now() / MS_IN_SECOND),
+            Math.floor(Date.now()),
             keyNameForRedis,
           )
           .set(keyNameForRedis, dto.value)
@@ -125,7 +125,7 @@ export class LruService {
           .multi()
           .zadd(
             this.appPrefix,
-            Math.floor(Date.now() / MS_IN_SECOND),
+            Math.floor(Date.now()),
             keyNameForRedis,
           )
           .set(keyNameForRedis, dto.value)
@@ -147,7 +147,7 @@ export class LruService {
         .zadd(
           this.appPrefix,
           'XX',
-          Math.floor(Date.now() / MS_IN_SECOND),
+          Math.floor(Date.now()),
           keyNameForRedis,
         )
         .get(keyNameForRedis)
