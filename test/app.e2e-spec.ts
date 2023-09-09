@@ -6,7 +6,7 @@ import { AppModule } from '../src/app.module';
 import { ConfigService } from '@nestjs/config';
 
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
-import { settings } from 'pactum';
+// import { settings } from 'pactum';
 import { int, string } from 'pactum-matchers';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
 import * as v8 from 'v8';
@@ -57,7 +57,7 @@ describe(`AppController (e2e)`, () => {
   });
 
   afterAll(async () => {
-    await redisConnection.disconnect();
+    // await redisConnection.disconnect();
     await app.close();
   });
 

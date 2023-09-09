@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { getRedisConnectionToken, RedisModule } from '@nestjs-modules/ioredis';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -9,7 +10,14 @@ describe('AppController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        AppService,
+        {
+          //provide: 'default_IORedisModuleConnectionToken',
+          provide: getRedisConnectionToken(),
+          useValue: RedisModule,
+        },
+      ],
       imports: [ConfigModule],
     }).compile();
 

@@ -30,13 +30,13 @@ export abstract class CustomException {
   }
 }
 
-abstract class AuthenticationException extends CustomException {
-  readonly exceptionKind = 'authorization';
-}
-
-abstract class NotAllowedException extends CustomException {
-  readonly exceptionKind = 'authentication';
-}
+// abstract class AuthenticationException extends CustomException {
+//   readonly exceptionKind = 'authorization';
+// }
+//
+// abstract class NotAllowedException extends CustomException {
+//   readonly exceptionKind = 'authentication';
+// }
 
 abstract class NotFoundException extends CustomException {
   readonly exceptionKind = 'not_found';
