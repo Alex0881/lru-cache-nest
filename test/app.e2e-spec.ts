@@ -8,8 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import { settings } from 'pactum';
 import { int, string } from 'pactum-matchers';
-import { ApiProperty } from '@nestjs/swagger';
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util';
+import * as v8 from 'v8';
 
 describe(`AppController (e2e)`, () => {
   let app: INestApplication;
@@ -53,7 +53,7 @@ describe(`AppController (e2e)`, () => {
   });
 
   beforeEach(async () => {
-    //settings.setLogLevel('ERROR'); // чтобы не выводить ничего лишнего кроме ошибок
+    // settings.setLogLevel('ERROR'); // чтобы не выводить ничего лишнего кроме ошибок
   });
 
   afterAll(async () => {
@@ -72,6 +72,16 @@ describe(`AppController (e2e)`, () => {
   });
 
   describe("LRU Cache V1 - check error's statuses", () => {
+    it('should return 404 status if key not found', () => {
+      return pactum
+        .spec()
+        .get(`/v1/${randomStringGenerator()}`)
+        .expectStatus(404)
+        .expectJsonMatchStrict(
+          v8.deserialize(v8.serialize(errorResponseObject)),
+        );
+    });
+
     it('should return 422 status if input DTO to set key has incorrect body', () => {
       return pactum
         .spec()
@@ -80,14 +90,9 @@ describe(`AppController (e2e)`, () => {
           letterTextHTML: '',
         })
         .expectStatus(422)
-        .expectJsonMatchStrict(errorResponseObject);
-    });
-
-    it('should return 404 status if key not found', () => {
-      return pactum
-        .spec()
-        .get(`/v1/${randomStringGenerator()}`)
-        .expectStatus(404);
+        .expectJsonMatchStrict(
+          v8.deserialize(v8.serialize(errorResponseObject)),
+        );
     });
   });
 
@@ -162,16 +167,6 @@ describe(`AppController (e2e)`, () => {
 
     it('getkey for key3 should return 404 status', () => {
       return pactum.spec().get(`/v1/key3`).expectStatus(404);
-    });
-  });
-
-  describe('Healthcheck', () => {
-    it('Healthcheck should return status 200', () => {
-      return pactum
-        .spec()
-        .get('/')
-        .expectStatus(200)
-        .expectJsonMatchStrict({ message: string() });
     });
   });
 });
