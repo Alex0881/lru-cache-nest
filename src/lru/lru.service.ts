@@ -112,22 +112,14 @@ export class LruService {
           .multi()
           .del(keyNameForDelete)
           .zrem(this.appPrefix, keyNameForDelete)
-          .zadd(
-            this.appPrefix,
-            Math.floor(Date.now()),
-            keyNameForRedis,
-          )
+          .zadd(this.appPrefix, Math.floor(Date.now()), keyNameForRedis)
           .set(keyNameForRedis, dto.value)
           .del(this.mutexName)
           .exec();
       } else {
         await this.redis
           .multi()
-          .zadd(
-            this.appPrefix,
-            Math.floor(Date.now()),
-            keyNameForRedis,
-          )
+          .zadd(this.appPrefix, Math.floor(Date.now()), keyNameForRedis)
           .set(keyNameForRedis, dto.value)
           .del(this.mutexName)
           .exec();
@@ -144,12 +136,7 @@ export class LruService {
     try {
       plResult = await this.redis
         .multi()
-        .zadd(
-          this.appPrefix,
-          'XX',
-          Math.floor(Date.now()),
-          keyNameForRedis,
-        )
+        .zadd(this.appPrefix, 'XX', Math.floor(Date.now()), keyNameForRedis)
         .get(keyNameForRedis)
         .exec();
     } catch (e) {
