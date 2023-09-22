@@ -6,12 +6,22 @@ import { ConfigService } from '@nestjs/config';
 
 describe('LruController', () => {
   let controller: LruController;
+  let service: LruService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LruController],
       providers: [
-        LruService,
+        //LruService,
+
+        {
+          provide: LruService,
+          useValue: {
+            setKeyValue: jest.fn().mockResolvedValue(undefined),
+            getKeyValue: jest.fn().mockResolvedValue({ value: '123' }),
+          },
+        },
+
         ConfigService,
         {
           //provide: 'default_IORedisModuleConnectionToken',
@@ -23,6 +33,7 @@ describe('LruController', () => {
     }).compile();
 
     controller = module.get<LruController>(LruController);
+    service = module.get<LruService>(LruService);
   });
 
   it('LruController should be defined', () => {
@@ -35,5 +46,27 @@ describe('LruController', () => {
 
   it('Method getKeyValue in LruController should be defined', () => {
     expect(controller?.getKeyValue).toBeDefined();
+  });
+
+  describe('setKeyValue()', () => {
+    it('should set key value', async () => {
+      const createSpy = jest
+        .spyOn(service, 'setKeyValue')
+        .mockResolvedValueOnce(undefined);
+
+      await controller.setKeyValue({ value: '123' }, 'key');
+      expect(createSpy).toHaveBeenCalledWith('key', { value: '123' });
+    });
+  });
+
+  describe('getKeyValue()', () => {
+    it('should get key value', async () => {
+      const createSpy = jest
+        .spyOn(service, 'getKeyValue')
+        .mockResolvedValueOnce({ value: '123' });
+
+      await controller.getKeyValue('key');
+      expect(createSpy).toHaveBeenCalledWith('key');
+    });
   });
 });
